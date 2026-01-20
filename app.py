@@ -25,13 +25,30 @@ def add_transaction():
     lbp_amount = request.json["lbp_amount"]
     usd_to_lbp = request.json["usd_to_lbp"]
 
-    new_txn = Transaction(
-        usd_amount=usd_amount,
-        lbp_amount=lbp_amount,
-        usd_to_lbp=usd_to_lbp
-    )
+    new_txn = Transaction(usd_amount=usd_amount, lbp_amount=lbp_amount, usd_to_lbp=usd_to_lbp)
 
     db.session.add(new_txn)
     db.session.commit()
 
     return jsonify({"message": "Transaction added successfully!"})
+
+
+@app.route('/exchangeRate', methods=['GET'])
+def get_exchange_rate():
+    transactions = Transaction.query.all()
+
+    usd_to_lbp_rates = []
+    lbp_to_usd_rates = []
+
+    for txn in transactions:
+        if txn.usd_to_lbp:
+            rate = txn.lbp_amount / txn.usd_amount
+            usd_to_lbp_rates.append(rate)
+        else:
+            rate = txn.usd_amount / txn.lbp_amount
+            lbp_to_usd_rates.append(rate)
+
+    avg_usd_to_lbp = (sum(usd_to_lbp_rates) / len(usd_to_lbp_rates) if usd_to_lbp_rates else 0)
+    avg_lbp_to_usd = (sum(lbp_to_usd_rates) / len(lbp_to_usd_rates) if lbp_to_usd_rates else 0)
+
+    return jsonify({"usd_to_lbp": avg_usd_to_lbp, "lbp_to_usd": avg_lbp_to_usd})
